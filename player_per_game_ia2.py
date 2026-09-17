@@ -1556,6 +1556,49 @@ print(
     "   Resultado completo da clusterização."
 )
 
+# ============================================================
+# TESTAR UM JOGADOR HIPOTÉTICO
+# ============================================================
+
+print("\n" + "=" * 70)
+print("TESTE DE JOGADOR HIPOTÉTICO")
+print("=" * 70)
+
+# Coloque aqui as médias estatísticas do jogador que você quer testar
+jogador_teste = pd.DataFrame([{
+    'mp_per_game': 30.0,
+    'fg_per_game': 8.0,
+    'fga_per_game': 16.0,
+    'fg_percent': 0.500,
+    'x3p_per_game': 2.5,
+    'x3pa_per_game': 7.0,
+    'x3p_percent': 0.357,
+    'ft_per_game': 4.0,
+    'fta_per_game': 5.0,
+    'ft_percent': 0.800,
+    'trb_per_game': 7.0,
+    'ast_per_game': 5.0,
+    'stl_per_game': 1.2,
+    'blk_per_game': 0.8,
+    'tov_per_game': 2.5,
+    'pts_per_game': 22.5
+}])
+
+# Aplicar o mesmo tratamento dos dados originais
+jogador_imputado = imputer.transform(jogador_teste)
+
+# Aplicar a mesma padronização utilizada no treinamento
+jogador_scaled = scaler.transform(jogador_imputado)
+
+# Descobrir o cluster
+cluster_jogador = modelo_final.predict(jogador_scaled)[0]
+
+print("\nEstatísticas do jogador testado:")
+print(jogador_teste.to_string(index=False))
+
+print("\n" + "-" * 70)
+print(f"O jogador pertence ao CLUSTER {cluster_jogador}")
+print("-" * 70)
 
 print("\n" + "=" * 70)
 print("FIM DO PROGRAMA")
