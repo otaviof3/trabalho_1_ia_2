@@ -54,14 +54,14 @@ ARQUIVO = "Player Per Game.csv"
 # Temporada que será analisada
 TEMPORADA = 2026
 
-# Número de clusters que queremos
+# Número de clusters utilizado no modelo final
 NUM_CLUSTERS = 4
 
-# Para avaliar outros valores de K
+# Valores de K utilizados para comparação
 K_MIN = 2
 K_MAX = 12
 
-# Seed para garantir que os resultados sejam reproduzíveis
+# Seed para garantir resultados reproduzíveis
 RANDOM_STATE = 42
 
 
@@ -82,9 +82,7 @@ print("PROJETO IA 2 - CLUSTERIZAÇÃO DE JOGADORES DA NBA")
 print("=" * 70)
 
 print(f"\nArquivo utilizado: {ARQUIVO}")
-
 print(f"Temporada analisada: {TEMPORADA}")
-
 print(f"Número de clusters escolhido: {NUM_CLUSTERS}")
 
 
@@ -99,31 +97,40 @@ print("\n" + "=" * 70)
 print("4. CARREGAMENTO DOS DADOS")
 print("=" * 70)
 
-print(
-    f"\nQuantidade de registros: {df.shape[0]}"
-)
-
-print(
-    f"Quantidade de colunas: {df.shape[1]}"
-)
+print(f"\nQuantidade de registros: {df.shape[0]}")
+print(f"Quantidade de colunas: {df.shape[1]}")
 
 
 # ============================================================
-# 5. VISÃO GERAL
+# 5. VISÃO GERAL DO DATASET
 # ============================================================
 
 print("\nPrimeiras linhas do dataset:")
 
-print(
-    df.head()
-)
+print(df.head())
 
 
 print("\nColunas:")
 
 for coluna in df.columns:
-
     print("-", coluna)
+
+
+print("\nTipos das variáveis:")
+
+print(df.dtypes)
+
+
+print("\nLigas existentes:")
+
+print(df["lg"].value_counts())
+
+
+print("\nTemporadas disponíveis:")
+
+print(
+    f"De {df['season'].min()} até {df['season'].max()}"
+)
 
 
 # ============================================================
@@ -164,7 +171,7 @@ print(
 
 
 # ============================================================
-# 8. VERIFICAR JOGADORES COM MÚLTIPLOS REGISTROS
+# 8. TRATAMENTO DE JOGADORES COM MÚLTIPLOS REGISTROS
 # ============================================================
 #
 # Alguns jogadores jogaram por mais de um time na temporada.
@@ -175,12 +182,12 @@ print(
 # Para evitar que um mesmo jogador apareça várias vezes,
 # vamos:
 #
-# 1. verificar quais jogadores possuem 2TM;
+# 1. identificar jogadores que possuem uma linha 2TM;
 # 2. manter somente a linha 2TM desses jogadores;
-# 3. manter normalmente os jogadores que possuem apenas um
-#    time.
+# 3. manter normalmente jogadores que possuem apenas um time.
 #
 # ============================================================
+
 
 contagem_jogadores = (
     df_temporada
@@ -202,12 +209,10 @@ print(
 
 # Jogadores que possuem uma linha 2TM
 jogadores_2tm = set(
-
     df_temporada.loc[
         df_temporada["team"] == "2TM",
         "player"
     ]
-
 )
 
 
@@ -261,7 +266,14 @@ if duplicatas > 0:
             subset=["player", "season"],
             keep="first"
         )
+        .copy()
     )
+
+
+print(
+    f"Registros finais após remoção de duplicatas: "
+    f"{len(df_temporada)}"
+)
 
 
 # ============================================================
@@ -276,13 +288,14 @@ if duplicatas > 0:
 # team
 # lg
 #
-# porque são identificadores.
+# porque são identificadores ou informações administrativas.
 #
 # Também NÃO utilizamos "pos".
 #
 # A posição será mantida apenas para análise posterior.
 #
 # ============================================================
+
 
 features = [
 
@@ -319,15 +332,25 @@ print("\n" + "=" * 70)
 print("10. FEATURES")
 print("=" * 70)
 
-print(
-    "\nEstatísticas utilizadas:"
-)
+print("\nEstatísticas utilizadas:")
 
 for feature in features:
+    print("-", feature)
 
-    print(
-        "-",
-        feature
+
+# Verificar se todas as features existem
+features_faltantes = [
+    feature
+    for feature in features
+    if feature not in df_temporada.columns
+]
+
+
+if features_faltantes:
+
+    raise ValueError(
+        "As seguintes features não foram encontradas no dataset: "
+        + ", ".join(features_faltantes)
     )
 
 
@@ -347,13 +370,9 @@ missing = (
 )
 
 
-print(
-    "\nValores ausentes por variável:"
-)
+print("\nValores ausentes por variável:")
 
-print(
-    missing
-)
+print(missing)
 
 
 print(
@@ -375,9 +394,10 @@ X = df_temporada[
 # 13. TRATAMENTO DOS VALORES AUSENTES
 # ============================================================
 #
-# Usaremos a mediana.
+# Será utilizada a mediana de cada variável.
 #
 # ============================================================
+
 
 imputer = SimpleImputer(
     strategy="median"
@@ -390,13 +410,9 @@ X_imputado = imputer.fit_transform(
 
 
 X_imputado = pd.DataFrame(
-
     X_imputado,
-
     columns=features,
-
     index=df_temporada.index
-
 )
 
 
@@ -410,12 +426,13 @@ print(
 # 14. PADRONIZAÇÃO
 # ============================================================
 #
-# O K-Means trabalha com distância.
+# O K-Means trabalha utilizando distâncias.
 #
-# Portanto, precisamos colocar todas as variáveis em uma
-# escala comparável.
+# Por isso, as variáveis precisam estar em uma escala
+# comparável.
 #
 # ============================================================
+
 
 scaler = StandardScaler()
 
@@ -434,13 +451,16 @@ print(
 # 15. TESTAR DIFERENTES VALORES DE K
 # ============================================================
 #
-# Mesmo que o projeto utilize 10 clusters, vamos testar
-# diferentes valores para verificar como o comportamento
-# do modelo muda.
+# Serão avaliados valores de K entre 2 e 12.
 #
-# K = 2 até K = 12
+# O objetivo é observar o comportamento do modelo através
+# do Silhouette Score e da inércia.
+#
+# O número final de clusters utilizado no projeto é definido
+# separadamente pela configuração NUM_CLUSTERS.
 #
 # ============================================================
+
 
 print("\n" + "=" * 70)
 print("15. TESTE DE DIFERENTES VALORES DE K")
@@ -473,11 +493,8 @@ for k in range(
 
 
     silhouette = silhouette_score(
-
         X_scaled,
-
         labels_teste
-
     )
 
 
@@ -530,8 +547,15 @@ print(
 
 
 # ============================================================
-# 17. MOSTRAR O MELHOR SILHOUETTE
+# 17. MOSTRAR O MAIOR SILHOUETTE ENCONTRADO
 # ============================================================
+#
+# Esta informação serve como referência para a análise.
+#
+# O modelo final continua utilizando NUM_CLUSTERS = 4.
+#
+# ============================================================
+
 
 melhor_linha = (
     resultados_k
@@ -547,7 +571,7 @@ print("=" * 70)
 
 
 print(
-    f"\nMaior Silhouette encontrado:"
+    "\nMaior Silhouette encontrado:"
 )
 
 
@@ -571,6 +595,7 @@ print(
 # ============================================================
 # 18. GRÁFICO DO SILHOUETTE
 # ============================================================
+
 
 plt.figure(
     figsize=(10, 6)
@@ -647,6 +672,7 @@ plt.show()
 # 19. GRÁFICO DO COTOVELO
 # ============================================================
 
+
 plt.figure(
     figsize=(10, 6)
 )
@@ -719,8 +745,9 @@ plt.show()
 
 
 # ============================================================
-# 20. TREINAR O MODELO FINAL COM 10 CLUSTERS
+# 20. TREINAR O MODELO FINAL COM 4 CLUSTERS
 # ============================================================
+
 
 modelo_final = KMeans(
 
@@ -743,6 +770,7 @@ clusters = (
 # 21. ADICIONAR OS CLUSTERS AO DATAFRAME
 # ============================================================
 
+
 df_resultado = (
     df_temporada.copy()
 )
@@ -754,6 +782,7 @@ df_resultado["cluster"] = clusters
 # ============================================================
 # 22. QUANTIDADE DE JOGADORES POR CLUSTER
 # ============================================================
+
 
 print("\n" + "=" * 70)
 print("22. TAMANHO DOS CLUSTERS")
@@ -789,12 +818,11 @@ for cluster, quantidade in (
 # 23. LISTAR TODOS OS JOGADORES DE CADA CLUSTER
 # ============================================================
 #
-# ESTA É UMA DAS PARTES MAIS IMPORTANTES.
-#
-# Aqui você conseguirá verificar exatamente quem pertence
-# a cada grupo.
+# Esta parte permite verificar exatamente quais jogadores
+# pertencem a cada grupo.
 #
 # ============================================================
+
 
 print("\n" + "=" * 70)
 print("23. JOGADORES DE CADA CLUSTER")
@@ -811,18 +839,14 @@ for cluster in range(
             df_resultado["cluster"] == cluster
         ]
 
-        [
-
-            [
-                "player",
-                "team",
-                "pos",
-                "pts_per_game",
-                "trb_per_game",
-                "ast_per_game"
-            ]
-
-        ]
+        [[
+            "player",
+            "team",
+            "pos",
+            "pts_per_game",
+            "trb_per_game",
+            "ast_per_game"
+        ]]
 
         .sort_values(
             "player"
@@ -835,10 +859,8 @@ for cluster in range(
     print("-" * 70)
 
     print(
-
         f"CLUSTER {cluster} "
         f"({len(jogadores_cluster)} jogadores)"
-
     )
 
     print("-" * 70)
@@ -864,12 +886,12 @@ for cluster in range(
 # 24. SALVAR TODOS OS JOGADORES COM SEUS CLUSTERS
 # ============================================================
 #
-# Este será o principal arquivo para a sua análise.
+# Este é um dos principais arquivos da análise.
 #
-# Você pode abrir no Excel ou Google Sheets e filtrar
-# a coluna "cluster".
+# Ele contém os jogadores, estatísticas e cluster.
 #
 # ============================================================
+
 
 colunas_saida = [
 
@@ -903,10 +925,12 @@ df_jogadores_clusters = (
     ]
 
     .sort_values(
+
         [
             "cluster",
             "player"
         ]
+
     )
 
 )
@@ -940,9 +964,10 @@ print(
 #
 # Aqui calculamos a média das estatísticas de cada grupo.
 #
-# Isso permite comparar os clusters.
+# Isso permite comparar os perfis estatísticos.
 #
 # ============================================================
+
 
 perfil_clusters = (
 
@@ -969,6 +994,7 @@ print(
 # 26. SALVAR PERFIL DOS CLUSTERS
 # ============================================================
 
+
 perfil_clusters.to_csv(
 
     "perfil_clusters.csv",
@@ -986,6 +1012,23 @@ print(
 # ============================================================
 # 27. HEATMAP DOS CLUSTERS
 # ============================================================
+#
+# IMPORTANTE:
+# O heatmap utiliza o mesmo procedimento do código original.
+#
+# Primeiro calculamos o perfil médio dos clusters.
+#
+# Depois padronizamos as médias entre os clusters para que
+# cada variável possa ser comparada em relação à média dos
+# próprios clusters.
+#
+# Valores positivos indicam valores acima da média daquela
+# estatística entre os clusters.
+#
+# Valores negativos indicam valores abaixo dessa média.
+#
+# ============================================================
+
 
 perfil_padronizado = pd.DataFrame(
 
@@ -1021,7 +1064,7 @@ sns.heatmap(
 
 
 plt.title(
-    "Perfil estatístico dos 10 clusters"
+    f"Perfil estatístico dos {NUM_CLUSTERS} clusters"
 )
 
 
@@ -1054,11 +1097,14 @@ plt.show()
 # 28. PCA
 # ============================================================
 #
-# O PCA será usado somente para visualizar os clusters.
+# O PCA será utilizado somente para visualizar os clusters
+# em duas dimensões.
 #
-# O K-Means foi treinado utilizando todas as features.
+# O K-Means continua sendo treinado utilizando todas as
+# features selecionadas.
 #
 # ============================================================
+
 
 pca = PCA(
     n_components=2
@@ -1106,8 +1152,9 @@ print(
 
 
 # ============================================================
-# 29. GRÁFICO DOS 10 CLUSTERS
+# 29. GRÁFICO DOS 4 CLUSTERS
 # ============================================================
+
 
 plt.figure(
     figsize=(13, 9)
@@ -1152,9 +1199,13 @@ plt.ylabel(
 
 
 plt.legend(
+
     title="Cluster",
+
     bbox_to_anchor=(1.05, 1),
+
     loc="upper left"
+
 )
 
 
@@ -1185,17 +1236,14 @@ plt.show()
 #
 # Cada cluster possui um centroide.
 #
-# Vamos calcular a distância de cada jogador até o centro
-# do seu próprio cluster.
+# A distância de cada jogador até o centro do seu próprio
+# cluster será calculada.
 #
-# Quanto menor a distância:
-#
-# -> mais próximo o jogador está do perfil central do grupo.
-#
-# Isso será utilizado para encontrar jogadores
-# representativos.
+# Quanto menor a distância, mais próximo o jogador está
+# do perfil central daquele grupo.
 #
 # ============================================================
+
 
 centroides = (
     modelo_final.cluster_centers_
@@ -1238,10 +1286,14 @@ df_resultado[
 # 31. 5 JOGADORES MAIS REPRESENTATIVOS DE CADA CLUSTER
 # ============================================================
 #
-# Estes jogadores são aqueles mais próximos do centro
-# estatístico do seu cluster.
+# São os jogadores mais próximos do centro estatístico
+# de cada cluster.
+#
+# Eles podem ser utilizados para ajudar na interpretação
+# dos grupos.
 #
 # ============================================================
+
 
 print("\n" + "=" * 70)
 print("31. JOGADORES REPRESENTATIVOS")
@@ -1330,6 +1382,7 @@ df_representativos = pd.DataFrame(
 # 32. SALVAR JOGADORES REPRESENTATIVOS
 # ============================================================
 
+
 df_representativos.to_csv(
 
     "jogadores_representativos.csv",
@@ -1342,14 +1395,16 @@ df_representativos.to_csv(
 
 
 print("\nArquivo criado:")
+
 print(
     "jogadores_representativos.csv"
 )
 
 
 # ============================================================
-# 33. SILHOUETTE FINAL DO MODELO COM 10 CLUSTERS
+# 33. AVALIAÇÃO FINAL DO MODELO COM 4 CLUSTERS
 # ============================================================
+
 
 silhouette_final = silhouette_score(
 
@@ -1393,15 +1448,18 @@ print(
 # 34. SALVAR RESULTADO COMPLETO
 # ============================================================
 
+
 df_resultado_final = (
 
     df_resultado
 
     .sort_values(
+
         [
             "cluster",
             "player"
         ]
+
     )
 
 )
@@ -1409,7 +1467,7 @@ df_resultado_final = (
 
 df_resultado_final.to_csv(
 
-    "resultado_clusterizacao_nba_2026.csv",
+    f"resultado_clusterizacao_nba_{TEMPORADA}.csv",
 
     index=False,
 
@@ -1419,22 +1477,325 @@ df_resultado_final.to_csv(
 
 
 print("\nArquivo criado:")
+
 print(
-    "resultado_clusterizacao_nba_2026.csv"
+    f"resultado_clusterizacao_nba_{TEMPORADA}.csv"
 )
 
 
 # ============================================================
-# 35. RESUMO FINAL
+# 35. TESTAR UM JOGADOR HIPOTÉTICO
+# ============================================================
+#
+# O jogador abaixo é apenas um exemplo.
+#
+# Para testar outro perfil, altere os valores abaixo.
+#
+# O jogador passa exatamente pelos mesmos processos utilizados
+# no dataset:
+#
+# 1. imputação;
+# 2. padronização;
+# 3. previsão pelo K-Means.
+#
 # ============================================================
 
+
 print("\n" + "=" * 70)
-print("35. RESUMO FINAL")
+print("35. TESTE DE JOGADOR HIPOTÉTICO")
+print("=" * 70)
+
+
+# ============================================================
+# ESTATÍSTICAS DO JOGADOR TESTADO
+# ============================================================
+
+
+jogador_teste = pd.DataFrame([{
+
+    "mp_per_game": 30.0,
+
+    "fg_per_game": 8.0,
+
+    "fga_per_game": 16.0,
+
+    "fg_percent": 0.500,
+
+    "x3p_per_game": 2.5,
+
+    "x3pa_per_game": 7.0,
+
+    "x3p_percent": 0.357,
+
+    "ft_per_game": 4.0,
+
+    "fta_per_game": 5.0,
+
+    "ft_percent": 0.800,
+
+    "trb_per_game": 7.0,
+
+    "ast_per_game": 5.0,
+
+    "stl_per_game": 1.2,
+
+    "blk_per_game": 0.8,
+
+    "tov_per_game": 2.5,
+
+    "pts_per_game": 22.5
+
+}])
+
+
+print("\nEstatísticas do jogador testado:")
+
+print(
+    jogador_teste[
+        features
+    ].T.to_string(
+        header=False
+    )
+)
+
+
+# ============================================================
+# APLICAR O MESMO TRATAMENTO DOS DADOS ORIGINAIS
+# ============================================================
+
+
+jogador_imputado = imputer.transform(
+
+    jogador_teste[
+        features
+    ]
+
+)
+
+
+# ============================================================
+# APLICAR A MESMA PADRONIZAÇÃO
+# ============================================================
+
+
+jogador_scaled = scaler.transform(
+
+    jogador_imputado
+
+)
+
+
+# ============================================================
+# PREVER O CLUSTER
+# ============================================================
+
+
+cluster_jogador = modelo_final.predict(
+
+    jogador_scaled
+
+)[0]
+
+
+print("\n" + "-" * 70)
+
+print(
+
+    f"O jogador pertence ao CLUSTER "
+    f"{cluster_jogador}"
+
+)
+
+print("-" * 70)
+
+
+# ============================================================
+# DISTÂNCIA DO JOGADOR PARA CADA CENTROIDE
+# ============================================================
+
+
+distancias_jogador = (
+
+    modelo_final.transform(
+        jogador_scaled
+    )[0]
+
+)
+
+
+print("\nDistância do jogador para cada cluster:")
+
+
+for cluster, distancia in enumerate(
+    distancias_jogador
+):
+
+    print(
+
+        f"Cluster {cluster}: "
+        f"{distancia:.4f}"
+
+    )
+
+
+# ============================================================
+# ENCONTRAR OS JOGADORES REAIS MAIS PRÓXIMOS
+# ============================================================
+#
+# Esta comparação ajuda a demonstrar que o jogador hipotético
+# foi associado a um grupo de jogadores que possuem
+# características estatísticas semelhantes.
+#
+# ============================================================
+
+
+distancias_todos = np.linalg.norm(
+
+    X_scaled - jogador_scaled[0],
+
+    axis=1
+
+)
+
+
+df_resultado[
+    "distancia_jogador_teste"
+] = distancias_todos
+
+
+jogadores_proximos = (
+
+    df_resultado
+
+    .sort_values(
+        "distancia_jogador_teste"
+    )
+
+    .head(10)
+
+)
+
+
+colunas_proximos = [
+
+    "player",
+
+    "team",
+
+    "pos",
+
+    "cluster",
+
+    "pts_per_game",
+
+    "trb_per_game",
+
+    "ast_per_game",
+
+    "mp_per_game",
+
+    "distancia_jogador_teste"
+
+]
+
+
+print("\n" + "=" * 70)
+print("10 JOGADORES REAIS MAIS PRÓXIMOS")
 print("=" * 70)
 
 
 print(
-    f"\nTemporada analisada: {TEMPORADA}"
+
+    jogadores_proximos[
+        colunas_proximos
+    ].to_string(
+        index=False
+    )
+
+)
+
+
+jogadores_proximos[
+    colunas_proximos
+].to_csv(
+
+    "jogadores_mais_proximos_teste.csv",
+
+    index=False,
+
+    encoding="utf-8-sig"
+
+)
+
+
+print(
+    "\nArquivo criado: "
+    "jogadores_mais_proximos_teste.csv"
+)
+
+
+# ============================================================
+# JOGADORES DO MESMO CLUSTER DO TESTE
+# ============================================================
+
+
+jogadores_mesmo_cluster = (
+
+    df_resultado[
+
+        df_resultado["cluster"] == cluster_jogador
+
+    ]
+
+    .sort_values(
+
+        "pts_per_game",
+
+        ascending=False
+
+    )
+
+)
+
+
+print("\n" + "=" * 70)
+print(
+    f"JOGADORES DO CLUSTER {cluster_jogador}"
+)
+print("=" * 70)
+
+
+print(
+
+    jogadores_mesmo_cluster[
+        [
+            "player",
+            "team",
+            "pos",
+            "pts_per_game",
+            "trb_per_game",
+            "ast_per_game"
+        ]
+    ].to_string(
+        index=False
+    )
+
+)
+
+
+# ============================================================
+# 36. RESUMO FINAL
+# ============================================================
+
+
+print("\n" + "=" * 70)
+print("36. RESUMO FINAL")
+print("=" * 70)
+
+
+print(
+    f"\nTemporada analisada: "
+    f"{TEMPORADA}"
 )
 
 
@@ -1456,6 +1817,18 @@ print(
 )
 
 
+print(
+    f"Inércia final: "
+    f"{modelo_final.inertia_:.2f}"
+)
+
+
+print(
+    f"Cluster do jogador hipotético: "
+    f"{cluster_jogador}"
+)
+
+
 print("\nQuantidade de jogadores por cluster:")
 
 
@@ -1471,134 +1844,57 @@ for cluster, quantidade in (
     )
 
 
+# ============================================================
+# 37. ARQUIVOS GERADOS
+# ============================================================
+
+
 print("\n" + "=" * 70)
-print("ARQUIVOS GERADOS")
+print("37. ARQUIVOS GERADOS")
 print("=" * 70)
 
 
-print(
-    "\n1. avaliacao_k.csv"
-)
-
-print(
-    "   Resultados de K = 2 até K = 12."
-)
+print("\n1. avaliacao_k.csv")
+print("   Resultados de K = 2 até K = 12.")
 
 
-print(
-    "\n2. silhouette_por_k.png"
-)
-
-print(
-    "   Gráfico do Silhouette Score."
-)
+print("\n2. silhouette_por_k.png")
+print("   Gráfico do Silhouette Score.")
 
 
-print(
-    "\n3. cotovelo_kmeans.png"
-)
-
-print(
-    "   Gráfico da inércia."
-)
+print("\n3. cotovelo_kmeans.png")
+print("   Gráfico da inércia.")
 
 
-print(
-    "\n4. perfil_clusters.csv"
-)
+print("\n4. perfil_clusters.csv")
+print("   Média das estatísticas de cada cluster.")
 
-print(
-    "   Média das estatísticas de cada cluster."
-)
+
+print("\n5. perfil_clusters_heatmap.png")
+print("   Heatmap para comparar os perfis dos clusters.")
+
+
+print("\n6. clusters_pca.png")
+print("   Visualização dos clusters em duas dimensões.")
+
+
+print("\n7. jogadores_por_cluster.csv")
+print("   Todos os jogadores, estatísticas e respectivos clusters.")
+
+
+print("\n8. jogadores_representativos.csv")
+print("   5 jogadores mais próximos do centro de cada cluster.")
 
 
 print(
-    "\n5. perfil_clusters_heatmap.png"
+    f"\n9. resultado_clusterizacao_nba_{TEMPORADA}.csv"
 )
-
-print(
-    "   Heatmap para comparar os clusters."
-)
+print("   Resultado completo da clusterização.")
 
 
-print(
-    "\n6. clusters_pca.png"
-)
+print("\n10. jogadores_mais_proximos_teste.csv")
+print("    Jogadores reais mais próximos do perfil hipotético.")
 
-print(
-    "   Visualização dos 10 clusters em 2 dimensões."
-)
-
-
-print(
-    "\n7. jogadores_por_cluster.csv"
-)
-
-print(
-    "   TODOS os jogadores + suas estatísticas + cluster."
-)
-
-
-print(
-    "\n8. jogadores_representativos.csv"
-)
-
-print(
-    "   5 jogadores mais próximos do centro de cada cluster."
-)
-
-
-print(
-    "\n9. resultado_clusterizacao_nba_2026.csv"
-)
-
-print(
-    "   Resultado completo da clusterização."
-)
-
-# ============================================================
-# TESTAR UM JOGADOR HIPOTÉTICO
-# ============================================================
-
-print("\n" + "=" * 70)
-print("TESTE DE JOGADOR HIPOTÉTICO")
-print("=" * 70)
-
-# Coloque aqui as médias estatísticas do jogador que você quer testar
-jogador_teste = pd.DataFrame([{
-    'mp_per_game': 30.0,
-    'fg_per_game': 8.0,
-    'fga_per_game': 16.0,
-    'fg_percent': 0.500,
-    'x3p_per_game': 2.5,
-    'x3pa_per_game': 7.0,
-    'x3p_percent': 0.357,
-    'ft_per_game': 4.0,
-    'fta_per_game': 5.0,
-    'ft_percent': 0.800,
-    'trb_per_game': 7.0,
-    'ast_per_game': 5.0,
-    'stl_per_game': 1.2,
-    'blk_per_game': 0.8,
-    'tov_per_game': 2.5,
-    'pts_per_game': 22.5
-}])
-
-# Aplicar o mesmo tratamento dos dados originais
-jogador_imputado = imputer.transform(jogador_teste)
-
-# Aplicar a mesma padronização utilizada no treinamento
-jogador_scaled = scaler.transform(jogador_imputado)
-
-# Descobrir o cluster
-cluster_jogador = modelo_final.predict(jogador_scaled)[0]
-
-print("\nEstatísticas do jogador testado:")
-print(jogador_teste.to_string(index=False))
-
-print("\n" + "-" * 70)
-print(f"O jogador pertence ao CLUSTER {cluster_jogador}")
-print("-" * 70)
 
 print("\n" + "=" * 70)
 print("FIM DO PROGRAMA")
