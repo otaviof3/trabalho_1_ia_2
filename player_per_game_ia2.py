@@ -49,7 +49,7 @@ warnings.filterwarnings("ignore")
 # ============================================================
 
 # Nome do arquivo CSV
-ARQUIVO = "Player Per Game.csv"
+ARQUIVO = "data\Player Per Game.csv"
 
 # Temporada que será analisada
 TEMPORADA = 2026
