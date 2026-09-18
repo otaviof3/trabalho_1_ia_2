@@ -17,7 +17,6 @@
 #
 # ============================================================
 
-
 # ============================================================
 # 1. IMPORTAÇÃO DAS BIBLIOTECAS
 # ============================================================
@@ -40,9 +39,7 @@ from sklearn.metrics import silhouette_score
 
 from sklearn.decomposition import PCA
 
-
 warnings.filterwarnings("ignore")
-
 
 # ============================================================
 # 2. CONFIGURAÇÕES DO PROJETO
@@ -64,7 +61,6 @@ K_MAX = 12
 # Seed para garantir resultados reproduzíveis
 RANDOM_STATE = 42
 
-
 # ============================================================
 # 3. VERIFICAR SE O ARQUIVO EXISTE
 # ============================================================
@@ -76,7 +72,6 @@ if not os.path.exists(ARQUIVO):
         "Coloque o arquivo CSV na mesma pasta do arquivo Python."
     )
 
-
 print("=" * 70)
 print("PROJETO IA 2 - CLUSTERIZAÇÃO DE JOGADORES DA NBA")
 print("=" * 70)
@@ -85,13 +80,13 @@ print(f"\nArquivo utilizado: {ARQUIVO}")
 print(f"Temporada analisada: {TEMPORADA}")
 print(f"Número de clusters escolhido: {NUM_CLUSTERS}")
 
-
 # ============================================================
 # 4. CARREGAR O DATASET
 # ============================================================
 
-df = pd.read_csv(ARQUIVO)
+os.makedirs("outputs", exist_ok=True)
 
+df = pd.read_csv(ARQUIVO)
 
 print("\n" + "=" * 70)
 print("4. CARREGAMENTO DOS DADOS")
@@ -99,7 +94,6 @@ print("=" * 70)
 
 print(f"\nQuantidade de registros: {df.shape[0]}")
 print(f"Quantidade de colunas: {df.shape[1]}")
-
 
 # ============================================================
 # 5. VISÃO GERAL DO DATASET
@@ -109,29 +103,24 @@ print("\nPrimeiras linhas do dataset:")
 
 print(df.head())
 
-
 print("\nColunas:")
 
 for coluna in df.columns:
     print("-", coluna)
 
-
 print("\nTipos das variáveis:")
 
 print(df.dtypes)
 
-
 print("\nLigas existentes:")
 
 print(df["lg"].value_counts())
-
 
 print("\nTemporadas disponíveis:")
 
 print(
     f"De {df['season'].min()} até {df['season'].max()}"
 )
-
 
 # ============================================================
 # 6. FILTRAR SOMENTE A NBA
@@ -141,7 +130,6 @@ df_nba = df[
     df["lg"] == "NBA"
 ].copy()
 
-
 print("\n" + "=" * 70)
 print("6. FILTRO DA NBA")
 print("=" * 70)
@@ -149,7 +137,6 @@ print("=" * 70)
 print(
     f"\nRegistros da NBA: {len(df_nba)}"
 )
-
 
 # ============================================================
 # 7. FILTRAR A TEMPORADA
@@ -159,7 +146,6 @@ df_temporada = df_nba[
     df_nba["season"] == TEMPORADA
 ].copy()
 
-
 print("\n" + "=" * 70)
 print(f"7. TEMPORADA {TEMPORADA}")
 print("=" * 70)
@@ -168,7 +154,6 @@ print(
     f"\nRegistros antes do tratamento: "
     f"{len(df_temporada)}"
 )
-
 
 # ============================================================
 # 8. TRATAMENTO DE JOGADORES COM MÚLTIPLOS REGISTROS
@@ -188,24 +173,20 @@ print(
 #
 # ============================================================
 
-
 contagem_jogadores = (
     df_temporada
     .groupby("player")
     .size()
 )
 
-
 jogadores_multiplos = contagem_jogadores[
     contagem_jogadores > 1
 ]
-
 
 print(
     f"\nJogadores com mais de um registro: "
     f"{len(jogadores_multiplos)}"
 )
-
 
 # Jogadores que possuem uma linha 2TM
 jogadores_2tm = set(
@@ -214,7 +195,6 @@ jogadores_2tm = set(
         "player"
     ]
 )
-
 
 # Remover os registros dos times individuais
 # quando o jogador possui uma linha 2TM
@@ -226,18 +206,15 @@ df_temporada = df_temporada[
     )
 ].copy()
 
-
 print(
     f"Registros depois do tratamento: "
     f"{len(df_temporada)}"
 )
 
-
 print(
     f"Jogadores únicos: "
     f"{df_temporada['player'].nunique()}"
 )
-
 
 # ============================================================
 # 9. REMOVER EVENTUAIS DUPLICATAS
@@ -247,7 +224,6 @@ duplicatas = df_temporada.duplicated(
     subset=["player", "season"]
 ).sum()
 
-
 print("\n" + "=" * 70)
 print("9. DUPLICATAS")
 print("=" * 70)
@@ -256,7 +232,6 @@ print(
     f"\nDuplicatas jogador + temporada: "
     f"{duplicatas}"
 )
-
 
 if duplicatas > 0:
 
@@ -269,12 +244,10 @@ if duplicatas > 0:
         .copy()
     )
 
-
 print(
     f"Registros finais após remoção de duplicatas: "
     f"{len(df_temporada)}"
 )
-
 
 # ============================================================
 # 10. FEATURES UTILIZADAS NO K-MEANS
@@ -295,7 +268,6 @@ print(
 # A posição será mantida apenas para análise posterior.
 #
 # ============================================================
-
 
 features = [
 
@@ -327,7 +299,6 @@ features = [
 
 ]
 
-
 print("\n" + "=" * 70)
 print("10. FEATURES")
 print("=" * 70)
@@ -337,7 +308,6 @@ print("\nEstatísticas utilizadas:")
 for feature in features:
     print("-", feature)
 
-
 # Verificar se todas as features existem
 features_faltantes = [
     feature
@@ -345,14 +315,12 @@ features_faltantes = [
     if feature not in df_temporada.columns
 ]
 
-
 if features_faltantes:
 
     raise ValueError(
         "As seguintes features não foram encontradas no dataset: "
         + ", ".join(features_faltantes)
     )
-
 
 # ============================================================
 # 11. VERIFICAR VALORES AUSENTES
@@ -362,24 +330,20 @@ print("\n" + "=" * 70)
 print("11. VALORES AUSENTES")
 print("=" * 70)
 
-
 missing = (
     df_temporada[features]
     .isnull()
     .sum()
 )
 
-
 print("\nValores ausentes por variável:")
 
 print(missing)
-
 
 print(
     "\nTotal de valores ausentes:",
     missing.sum()
 )
-
 
 # ============================================================
 # 12. SEPARAR AS FEATURES
@@ -389,7 +353,6 @@ X = df_temporada[
     features
 ].copy()
 
-
 # ============================================================
 # 13. TRATAMENTO DOS VALORES AUSENTES
 # ============================================================
@@ -398,16 +361,13 @@ X = df_temporada[
 #
 # ============================================================
 
-
 imputer = SimpleImputer(
     strategy="median"
 )
 
-
 X_imputado = imputer.fit_transform(
     X
 )
-
 
 X_imputado = pd.DataFrame(
     X_imputado,
@@ -415,12 +375,10 @@ X_imputado = pd.DataFrame(
     index=df_temporada.index
 )
 
-
 print(
     "\nValores ausentes após tratamento:",
     X_imputado.isnull().sum().sum()
 )
-
 
 # ============================================================
 # 14. PADRONIZAÇÃO
@@ -433,19 +391,15 @@ print(
 #
 # ============================================================
 
-
 scaler = StandardScaler()
-
 
 X_scaled = scaler.fit_transform(
     X_imputado
 )
 
-
 print(
     "\nDados padronizados com StandardScaler."
 )
-
 
 # ============================================================
 # 15. TESTAR DIFERENTES VALORES DE K
@@ -461,14 +415,11 @@ print(
 #
 # ============================================================
 
-
 print("\n" + "=" * 70)
 print("15. TESTE DE DIFERENTES VALORES DE K")
 print("=" * 70)
 
-
 resultados_k = []
-
 
 for k in range(
     K_MIN,
@@ -485,21 +436,17 @@ for k in range(
 
     )
 
-
     labels_teste = (
         modelo_teste
         .fit_predict(X_scaled)
     )
-
 
     silhouette = silhouette_score(
         X_scaled,
         labels_teste
     )
 
-
     inertia = modelo_teste.inertia_
-
 
     resultados_k.append({
 
@@ -511,7 +458,6 @@ for k in range(
 
     })
 
-
     print(
 
         f"K = {k:2d} | "
@@ -520,11 +466,9 @@ for k in range(
 
     )
 
-
 resultados_k = pd.DataFrame(
     resultados_k
 )
-
 
 # ============================================================
 # 16. SALVAR RESULTADOS DOS TESTES
@@ -532,7 +476,7 @@ resultados_k = pd.DataFrame(
 
 resultados_k.to_csv(
 
-    "avaliacao_k.csv",
+    "outputs/avaliacao_k.csv",
 
     index=False,
 
@@ -540,11 +484,9 @@ resultados_k.to_csv(
 
 )
 
-
 print(
     "\nArquivo criado: avaliacao_k.csv"
 )
-
 
 # ============================================================
 # 17. MOSTRAR O MAIOR SILHOUETTE ENCONTRADO
@@ -556,7 +498,6 @@ print(
 #
 # ============================================================
 
-
 melhor_linha = (
     resultados_k
     .loc[
@@ -564,43 +505,35 @@ melhor_linha = (
     ]
 )
 
-
 print("\n" + "=" * 70)
 print("17. SILHOUETTE")
 print("=" * 70)
-
 
 print(
     "\nMaior Silhouette encontrado:"
 )
 
-
 print(
     f"K = {int(melhor_linha['k'])}"
 )
-
 
 print(
     f"Silhouette = "
     f"{melhor_linha['silhouette']:.4f}"
 )
 
-
 print(
     f"\nK utilizado no projeto: "
     f"{NUM_CLUSTERS}"
 )
 
-
 # ============================================================
 # 18. GRÁFICO DO SILHOUETTE
 # ============================================================
 
-
 plt.figure(
     figsize=(10, 6)
 )
-
 
 plt.plot(
 
@@ -612,7 +545,6 @@ plt.plot(
 
 )
 
-
 plt.axvline(
 
     NUM_CLUSTERS,
@@ -623,60 +555,48 @@ plt.axvline(
 
 )
 
-
 plt.xticks(
     resultados_k["k"]
 )
-
 
 plt.xlabel(
     "Número de clusters (K)"
 )
 
-
 plt.ylabel(
     "Silhouette Score"
 )
-
 
 plt.title(
     "Silhouette Score para diferentes valores de K"
 )
 
-
 plt.legend()
-
 
 plt.grid(
     True,
     alpha=0.3
 )
 
-
 plt.tight_layout()
-
 
 plt.savefig(
 
-    "silhouette_por_k.png",
+    "outputs/silhouette_por_k.png",
 
     dpi=300
 
 )
 
-
 plt.show()
-
 
 # ============================================================
 # 19. GRÁFICO DO COTOVELO
 # ============================================================
 
-
 plt.figure(
     figsize=(10, 6)
 )
-
 
 plt.plot(
 
@@ -688,7 +608,6 @@ plt.plot(
 
 )
 
-
 plt.axvline(
 
     NUM_CLUSTERS,
@@ -699,55 +618,44 @@ plt.axvline(
 
 )
 
-
 plt.xticks(
     resultados_k["k"]
 )
-
 
 plt.xlabel(
     "Número de clusters (K)"
 )
 
-
 plt.ylabel(
     "Inércia"
 )
-
 
 plt.title(
     "Método do cotovelo - K-Means"
 )
 
-
 plt.legend()
-
 
 plt.grid(
     True,
     alpha=0.3
 )
 
-
 plt.tight_layout()
-
 
 plt.savefig(
 
-    "cotovelo_kmeans.png",
+    "outputs/cotovelo_kmeans.png",
 
     dpi=300
 
 )
 
-
 plt.show()
-
 
 # ============================================================
 # 20. TREINAR O MODELO FINAL COM 4 CLUSTERS
 # ============================================================
-
 
 modelo_final = KMeans(
 
@@ -759,35 +667,28 @@ modelo_final = KMeans(
 
 )
 
-
 clusters = (
     modelo_final
     .fit_predict(X_scaled)
 )
 
-
 # ============================================================
 # 21. ADICIONAR OS CLUSTERS AO DATAFRAME
 # ============================================================
-
 
 df_resultado = (
     df_temporada.copy()
 )
 
-
 df_resultado["cluster"] = clusters
-
 
 # ============================================================
 # 22. QUANTIDADE DE JOGADORES POR CLUSTER
 # ============================================================
 
-
 print("\n" + "=" * 70)
 print("22. TAMANHO DOS CLUSTERS")
 print("=" * 70)
-
 
 tamanho_clusters = (
 
@@ -801,7 +702,6 @@ tamanho_clusters = (
 
 )
 
-
 for cluster, quantidade in (
     tamanho_clusters.items()
 ):
@@ -813,7 +713,6 @@ for cluster, quantidade in (
 
     )
 
-
 # ============================================================
 # 23. LISTAR TODOS OS JOGADORES DE CADA CLUSTER
 # ============================================================
@@ -823,11 +722,9 @@ for cluster, quantidade in (
 #
 # ============================================================
 
-
 print("\n" + "=" * 70)
 print("23. JOGADORES DE CADA CLUSTER")
 print("=" * 70)
-
 
 for cluster in range(
     NUM_CLUSTERS
@@ -854,7 +751,6 @@ for cluster in range(
 
     )
 
-
     print("\n")
     print("-" * 70)
 
@@ -864,7 +760,6 @@ for cluster in range(
     )
 
     print("-" * 70)
-
 
     for _, jogador in (
         jogadores_cluster.iterrows()
@@ -881,7 +776,6 @@ for cluster in range(
 
         )
 
-
 # ============================================================
 # 24. SALVAR TODOS OS JOGADORES COM SEUS CLUSTERS
 # ============================================================
@@ -891,7 +785,6 @@ for cluster in range(
 # Ele contém os jogadores, estatísticas e cluster.
 #
 # ============================================================
-
 
 colunas_saida = [
 
@@ -917,7 +810,6 @@ colunas_saida = [
 
 ]
 
-
 df_jogadores_clusters = (
 
     df_resultado[
@@ -935,17 +827,15 @@ df_jogadores_clusters = (
 
 )
 
-
 df_jogadores_clusters.to_csv(
 
-    "jogadores_por_cluster.csv",
+    "outputs/jogadores_por_cluster.csv",
 
     index=False,
 
     encoding="utf-8-sig"
 
 )
-
 
 print("\n" + "=" * 70)
 
@@ -954,9 +844,8 @@ print(
 )
 
 print(
-    "jogadores_por_cluster.csv"
+    "outputs/jogadores_por_cluster.csv"
 )
-
 
 # ============================================================
 # 25. PERFIL MÉDIO DE CADA CLUSTER
@@ -968,7 +857,6 @@ print(
 #
 # ============================================================
 
-
 perfil_clusters = (
 
     df_resultado
@@ -979,35 +867,29 @@ perfil_clusters = (
 
 )
 
-
 print("\n" + "=" * 70)
 print("25. PERFIL MÉDIO DOS CLUSTERS")
 print("=" * 70)
-
 
 print(
     perfil_clusters.round(2)
 )
 
-
 # ============================================================
 # 26. SALVAR PERFIL DOS CLUSTERS
 # ============================================================
 
-
 perfil_clusters.to_csv(
 
-    "perfil_clusters.csv",
+    "outputs/perfil_clusters.csv",
 
     encoding="utf-8-sig"
 
 )
 
-
 print(
     "\nArquivo criado: perfil_clusters.csv"
 )
-
 
 # ============================================================
 # 27. HEATMAP DOS CLUSTERS
@@ -1029,7 +911,6 @@ print(
 #
 # ============================================================
 
-
 perfil_padronizado = pd.DataFrame(
 
     StandardScaler().fit_transform(
@@ -1042,11 +923,9 @@ perfil_padronizado = pd.DataFrame(
 
 )
 
-
 plt.figure(
     figsize=(18, 8)
 )
-
 
 sns.heatmap(
 
@@ -1062,36 +941,29 @@ sns.heatmap(
 
 )
 
-
 plt.title(
     f"Perfil estatístico dos {NUM_CLUSTERS} clusters"
 )
-
 
 plt.xlabel(
     "Estatísticas"
 )
 
-
 plt.ylabel(
     "Cluster"
 )
 
-
 plt.tight_layout()
-
 
 plt.savefig(
 
-    "perfil_clusters_heatmap.png",
+    "outputs/perfil_clusters_heatmap.png",
 
     dpi=300
 
 )
 
-
 plt.show()
-
 
 # ============================================================
 # 28. PCA
@@ -1105,27 +977,22 @@ plt.show()
 #
 # ============================================================
 
-
 pca = PCA(
     n_components=2
 )
-
 
 X_pca = (
     pca
     .fit_transform(X_scaled)
 )
 
-
 df_resultado["PCA1"] = X_pca[:, 0]
 
 df_resultado["PCA2"] = X_pca[:, 1]
 
-
 print("\n" + "=" * 70)
 print("28. PCA")
 print("=" * 70)
-
 
 print(
 
@@ -1134,14 +1001,12 @@ print(
 
 )
 
-
 print(
 
     f"Variância explicada pela PCA2: "
     f"{pca.explained_variance_ratio_[1] * 100:.2f}%"
 
 )
-
 
 print(
 
@@ -1150,16 +1015,13 @@ print(
 
 )
 
-
 # ============================================================
 # 29. GRÁFICO DOS 4 CLUSTERS
 # ============================================================
 
-
 plt.figure(
     figsize=(13, 9)
 )
-
 
 sns.scatterplot(
 
@@ -1179,7 +1041,6 @@ sns.scatterplot(
 
 )
 
-
 plt.title(
 
     f"Clusterização dos jogadores da NBA - "
@@ -1187,16 +1048,13 @@ plt.title(
 
 )
 
-
 plt.xlabel(
     "Componente Principal 1"
 )
 
-
 plt.ylabel(
     "Componente Principal 2"
 )
-
 
 plt.legend(
 
@@ -1208,27 +1066,22 @@ plt.legend(
 
 )
 
-
 plt.grid(
     True,
     alpha=0.2
 )
 
-
 plt.tight_layout()
-
 
 plt.savefig(
 
-    "clusters_pca.png",
+    "outputs/clusters_pca.png",
 
     dpi=300
 
 )
 
-
 plt.show()
-
 
 # ============================================================
 # 30. DISTÂNCIA DOS JOGADORES AO CENTRO DO CLUSTER
@@ -1244,14 +1097,11 @@ plt.show()
 #
 # ============================================================
 
-
 centroides = (
     modelo_final.cluster_centers_
 )
 
-
 distancias = []
-
 
 for i in range(
     len(X_scaled)
@@ -1259,11 +1109,9 @@ for i in range(
 
     cluster_atual = clusters[i]
 
-
     centroide = (
         centroides[cluster_atual]
     )
-
 
     distancia = np.linalg.norm(
 
@@ -1271,16 +1119,13 @@ for i in range(
 
     )
 
-
     distancias.append(
         distancia
     )
 
-
 df_resultado[
     "distancia_centroide"
 ] = distancias
-
 
 # ============================================================
 # 31. 5 JOGADORES MAIS REPRESENTATIVOS DE CADA CLUSTER
@@ -1294,14 +1139,11 @@ df_resultado[
 #
 # ============================================================
 
-
 print("\n" + "=" * 70)
 print("31. JOGADORES REPRESENTATIVOS")
 print("=" * 70)
 
-
 jogadores_representativos = []
-
 
 for cluster in range(
     NUM_CLUSTERS
@@ -1321,7 +1163,6 @@ for cluster in range(
 
     )
 
-
     print("\n")
     print("-" * 70)
 
@@ -1330,7 +1171,6 @@ for cluster in range(
     )
 
     print("-" * 70)
-
 
     for _, jogador in (
         representativos.iterrows()
@@ -1344,7 +1184,6 @@ for cluster in range(
             f"{jogador['distancia_centroide']:.3f}"
 
         )
-
 
         jogadores_representativos.append({
 
@@ -1370,22 +1209,19 @@ for cluster in range(
 
         })
 
-
 df_representativos = pd.DataFrame(
 
     jogadores_representativos
 
 )
 
-
 # ============================================================
 # 32. SALVAR JOGADORES REPRESENTATIVOS
 # ============================================================
 
-
 df_representativos.to_csv(
 
-    "jogadores_representativos.csv",
+    "outputs/jogadores_representativos.csv",
 
     index=False,
 
@@ -1393,18 +1229,15 @@ df_representativos.to_csv(
 
 )
 
-
 print("\nArquivo criado:")
 
 print(
-    "jogadores_representativos.csv"
+    "outputs/jogadores_representativos.csv"
 )
-
 
 # ============================================================
 # 33. AVALIAÇÃO FINAL DO MODELO COM 4 CLUSTERS
 # ============================================================
-
 
 silhouette_final = silhouette_score(
 
@@ -1414,11 +1247,9 @@ silhouette_final = silhouette_score(
 
 )
 
-
 print("\n" + "=" * 70)
 print("33. AVALIAÇÃO FINAL DO MODELO")
 print("=" * 70)
-
 
 print(
 
@@ -1427,14 +1258,12 @@ print(
 
 )
 
-
 print(
 
     f"Silhouette Score: "
     f"{silhouette_final:.4f}"
 
 )
-
 
 print(
 
@@ -1443,11 +1272,9 @@ print(
 
 )
 
-
 # ============================================================
 # 34. SALVAR RESULTADO COMPLETO
 # ============================================================
-
 
 df_resultado_final = (
 
@@ -1464,24 +1291,17 @@ df_resultado_final = (
 
 )
 
-
 df_resultado_final.to_csv(
-
-    f"resultado_clusterizacao_nba_{TEMPORADA}.csv",
-
+    f"outputs/resultado_clusterizacao_nba_{TEMPORADA}.csv",
     index=False,
-
     encoding="utf-8-sig"
-
 )
-
 
 print("\nArquivo criado:")
 
 print(
     f"resultado_clusterizacao_nba_{TEMPORADA}.csv"
 )
-
 
 # ============================================================
 # 35. TESTAR UM JOGADOR HIPOTÉTICO
@@ -1500,16 +1320,13 @@ print(
 #
 # ============================================================
 
-
 print("\n" + "=" * 70)
 print("35. TESTE DE JOGADOR HIPOTÉTICO")
 print("=" * 70)
 
-
 # ============================================================
 # ESTATÍSTICAS DO JOGADOR TESTADO
 # ============================================================
-
 
 jogador_teste = pd.DataFrame([{
 
@@ -1547,7 +1364,6 @@ jogador_teste = pd.DataFrame([{
 
 }])
 
-
 print("\nEstatísticas do jogador testado:")
 
 print(
@@ -1558,11 +1374,9 @@ print(
     )
 )
 
-
 # ============================================================
 # APLICAR O MESMO TRATAMENTO DOS DADOS ORIGINAIS
 # ============================================================
-
 
 jogador_imputado = imputer.transform(
 
@@ -1572,11 +1386,9 @@ jogador_imputado = imputer.transform(
 
 )
 
-
 # ============================================================
 # APLICAR A MESMA PADRONIZAÇÃO
 # ============================================================
-
 
 jogador_scaled = scaler.transform(
 
@@ -1584,18 +1396,15 @@ jogador_scaled = scaler.transform(
 
 )
 
-
 # ============================================================
 # PREVER O CLUSTER
 # ============================================================
-
 
 cluster_jogador = modelo_final.predict(
 
     jogador_scaled
 
 )[0]
-
 
 print("\n" + "-" * 70)
 
@@ -1608,11 +1417,9 @@ print(
 
 print("-" * 70)
 
-
 # ============================================================
 # DISTÂNCIA DO JOGADOR PARA CADA CENTROIDE
 # ============================================================
-
 
 distancias_jogador = (
 
@@ -1622,9 +1429,7 @@ distancias_jogador = (
 
 )
 
-
 print("\nDistância do jogador para cada cluster:")
-
 
 for cluster, distancia in enumerate(
     distancias_jogador
@@ -1637,7 +1442,6 @@ for cluster, distancia in enumerate(
 
     )
 
-
 # ============================================================
 # ENCONTRAR OS JOGADORES REAIS MAIS PRÓXIMOS
 # ============================================================
@@ -1648,7 +1452,6 @@ for cluster, distancia in enumerate(
 #
 # ============================================================
 
-
 distancias_todos = np.linalg.norm(
 
     X_scaled - jogador_scaled[0],
@@ -1657,11 +1460,9 @@ distancias_todos = np.linalg.norm(
 
 )
 
-
 df_resultado[
     "distancia_jogador_teste"
 ] = distancias_todos
-
 
 jogadores_proximos = (
 
@@ -1674,7 +1475,6 @@ jogadores_proximos = (
     .head(10)
 
 )
-
 
 colunas_proximos = [
 
@@ -1698,11 +1498,9 @@ colunas_proximos = [
 
 ]
 
-
 print("\n" + "=" * 70)
 print("10 JOGADORES REAIS MAIS PRÓXIMOS")
 print("=" * 70)
-
 
 print(
 
@@ -1714,12 +1512,11 @@ print(
 
 )
 
-
 jogadores_proximos[
     colunas_proximos
 ].to_csv(
 
-    "jogadores_mais_proximos_teste.csv",
+    "outputs/jogadores_mais_proximos_teste.csv",
 
     index=False,
 
@@ -1727,17 +1524,14 @@ jogadores_proximos[
 
 )
 
-
 print(
     "\nArquivo criado: "
-    "jogadores_mais_proximos_teste.csv"
+    "outputs/jogadores_mais_proximos_teste.csv"
 )
-
 
 # ============================================================
 # JOGADORES DO MESMO CLUSTER DO TESTE
 # ============================================================
-
 
 jogadores_mesmo_cluster = (
 
@@ -1757,13 +1551,11 @@ jogadores_mesmo_cluster = (
 
 )
 
-
 print("\n" + "=" * 70)
 print(
     f"JOGADORES DO CLUSTER {cluster_jogador}"
 )
 print("=" * 70)
-
 
 print(
 
@@ -1782,55 +1574,45 @@ print(
 
 )
 
-
 # ============================================================
 # 36. RESUMO FINAL
 # ============================================================
 
-
 print("\n" + "=" * 70)
 print("36. RESUMO FINAL")
 print("=" * 70)
-
 
 print(
     f"\nTemporada analisada: "
     f"{TEMPORADA}"
 )
 
-
 print(
     f"Jogadores analisados: "
     f"{len(df_resultado)}"
 )
-
 
 print(
     f"Clusters utilizados: "
     f"{NUM_CLUSTERS}"
 )
 
-
 print(
     f"Silhouette Score final: "
     f"{silhouette_final:.4f}"
 )
-
 
 print(
     f"Inércia final: "
     f"{modelo_final.inertia_:.2f}"
 )
 
-
 print(
     f"Cluster do jogador hipotético: "
     f"{cluster_jogador}"
 )
 
-
 print("\nQuantidade de jogadores por cluster:")
-
 
 for cluster, quantidade in (
     tamanho_clusters.items()
@@ -1843,58 +1625,45 @@ for cluster, quantidade in (
 
     )
 
-
 # ============================================================
 # 37. ARQUIVOS GERADOS
 # ============================================================
-
 
 print("\n" + "=" * 70)
 print("37. ARQUIVOS GERADOS")
 print("=" * 70)
 
-
 print("\n1. avaliacao_k.csv")
 print("   Resultados de K = 2 até K = 12.")
-
 
 print("\n2. silhouette_por_k.png")
 print("   Gráfico do Silhouette Score.")
 
-
 print("\n3. cotovelo_kmeans.png")
 print("   Gráfico da inércia.")
-
 
 print("\n4. perfil_clusters.csv")
 print("   Média das estatísticas de cada cluster.")
 
-
 print("\n5. perfil_clusters_heatmap.png")
 print("   Heatmap para comparar os perfis dos clusters.")
-
 
 print("\n6. clusters_pca.png")
 print("   Visualização dos clusters em duas dimensões.")
 
-
 print("\n7. jogadores_por_cluster.csv")
 print("   Todos os jogadores, estatísticas e respectivos clusters.")
 
-
 print("\n8. jogadores_representativos.csv")
 print("   5 jogadores mais próximos do centro de cada cluster.")
-
 
 print(
     f"\n9. resultado_clusterizacao_nba_{TEMPORADA}.csv"
 )
 print("   Resultado completo da clusterização.")
 
-
 print("\n10. jogadores_mais_proximos_teste.csv")
 print("    Jogadores reais mais próximos do perfil hipotético.")
-
 
 print("\n" + "=" * 70)
 print("FIM DO PROGRAMA")
