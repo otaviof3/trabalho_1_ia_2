@@ -45,13 +45,47 @@ Aprendizado não supervisionado, utilizando clustering.
 9. Avaliação e visualização dos agrupamentos;
 10. Teste de um jogador hipotético.
 
+## Estrutura esperada
+
+```
+projeto/
+├── data/
+│   └── Player Per Game.csv
+├── outputs/              (gerada automaticamente)
+├── reports/
+│   └── relatorio.pdf
+├── player_per_game_ia2.py
+└── requirements.txt
+```
+
+Baixe o arquivo `Player Per Game.csv` do dataset linkado acima e coloque-o
+na pasta `data/` antes de executar.
+
 ## Execução
 
 Instale as dependências:
 
 ```powershell
 pip install -r requirements.txt
+```
 
-E execute o arquivo Python:
+Execute o script:
+
 ```powershell
 python player_per_game_ia2.py
+```
+
+## Resultados gerados
+
+Ao final da execução, a pasta `outputs/` conterá os CSVs e gráficos gerados
+(clusters por jogador, perfil dos clusters, avaliação por K, entre outros).
+A lista completa dos arquivos e sua descrição está no relatório técnico,
+disponível em `reports/`.
+
+## Reprodutibilidade
+
+O script utiliza `random_state = 42` em todos os modelos, garantindo que
+execuções repetidas produzam exatamente os mesmos clusters. Os parâmetros
+principais (arquivo de entrada, temporada analisada, número de clusters e
+faixa de K testada) estão centralizados no topo do arquivo
+`player_per_game_ia2.py`.
