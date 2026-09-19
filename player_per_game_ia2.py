@@ -46,7 +46,7 @@ warnings.filterwarnings("ignore")
 # ============================================================
 
 # Nome do arquivo CSV
-ARQUIVO = "data\Player Per Game.csv"
+ARQUIVO = os.path.join("data", "Player Per Game.csv")
 
 # Temporada que será analisada
 TEMPORADA = 2026
@@ -161,16 +161,6 @@ print(
 #
 # Alguns jogadores jogaram por mais de um time na temporada.
 #
-# O dataset possui uma linha "2TM", que representa o total
-# daquele jogador na temporada.
-#
-# Para evitar que um mesmo jogador apareça várias vezes,
-# vamos:
-#
-# 1. identificar jogadores que possuem uma linha 2TM;
-# 2. manter somente a linha 2TM desses jogadores;
-# 3. manter normalmente jogadores que possuem apenas um time.
-#
 # ============================================================
 
 contagem_jogadores = (
@@ -188,21 +178,20 @@ print(
     f"{len(jogadores_multiplos)}"
 )
 
-# Jogadores que possuem uma linha 2TM
-jogadores_2tm = set(
-    df_temporada.loc[
-        df_temporada["team"] == "2TM",
-        "player"
-    ]
+# Jogadores que possuem uma linha agregada (2TM, 3TM, 4TM...)
+mask_agregado = df_temporada["team"].str.match(r"^\d+TM$", na=False)
+
+jogadores_agregados = set(
+    df_temporada.loc[mask_agregado, "player"]
 )
 
 # Remover os registros dos times individuais
-# quando o jogador possui uma linha 2TM
+# quando o jogador possui uma linha agregada
 df_temporada = df_temporada[
     ~(
-        df_temporada["player"].isin(jogadores_2tm)
+        df_temporada["player"].isin(jogadores_agregados)
         &
-        (df_temporada["team"] != "2TM")
+        ~mask_agregado
     )
 ].copy()
 
@@ -894,9 +883,6 @@ print(
 # ============================================================
 # 27. HEATMAP DOS CLUSTERS
 # ============================================================
-#
-# IMPORTANTE:
-# O heatmap utiliza o mesmo procedimento do código original.
 #
 # Primeiro calculamos o perfil médio dos clusters.
 #

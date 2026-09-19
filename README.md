@@ -51,3 +51,7 @@ Instale as dependências:
 
 ```powershell
 pip install -r requirements.txt
+
+E execute o arquivo Python:
+```powershell
+python player_per_game_ia2.py
